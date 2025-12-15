@@ -163,3 +163,51 @@ curl -s http://127.0.0.1:5000/api/orders | jq
 Задание выполнено, созданный API выводит запрашиваемые данные и в него добавляются новые покупки.
 
 ## Задание 3
+Переходим к выполнению следующей задачи: настройка Nginx. Настроить блок upstream и балансировку (даже с одним сервером).
+
+Установка и подключение Nginx
+````
+sudo apt update  
+sudo apt install nginx -y  
+sudo systemctl start nginx  
+sudo systemctl enable nginx
+````
+Проверка дефолтной страницы
+````
+curl http://localhost
+````
+
+<img width="598" height="301" alt="image" src="https://github.com/user-attachments/assets/177e7fb8-29cd-49b0-adc1-15a822c50ac9" />
+
+Продолжим настройка upstream. Откроем конфигурационный файл: 
+````
+sudo nano /etc/nginx/nginx.conf
+````
+<img width="595" height="379" alt="image" src="https://github.com/user-attachments/assets/e2f5348e-6bb9-48ec-b47e-07ab4da61997" />
+
+
+Внутри блока http { ... } добавим описание upstream для Flask‑API заказов:
+````
+ upstream orders_backend {  
+     server 127.0.0.1:5000;    
+}
+````
+Внутри server в блок location добавим новый блок для API заказов
+````
+    location /api/orders {  
+       # перенаправляем запросы к пулу backend-серверов  
+        proxy_pass http://orders_backend;  
+        proxy_set_header Host $host;  
+        proxy_set_header X-Real-IP $remote_addr;  
+  }
+````
+
+Проверяем синтаксис
+
+````
+sudo nginx -t
+````
+
+<img width="579" height="133" alt="image" src="https://github.com/user-attachments/assets/6ccf1d87-7b3a-4c5d-801d-c2cec58c190e" />
+
+Теперь перейдем к тестированию, будем работать в двух терминалах: Flask и client. В терминале Flask запустим сервис.
