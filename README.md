@@ -28,7 +28,8 @@ venv.
 ````
 sudo apt install curl telnet libxml2-utils jq -y
 ````
-Выполним задание: анализ ответа от публичного API Sberbank (sberbank.ru/ru/quotes/currencies).
+## Задание 1
+Необходимо провести анализ ответа от публичного API Sberbank (sberbank.ru/ru/quotes/currencies).
 
 Выполним следующую команду:
 ````
