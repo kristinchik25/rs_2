@@ -23,6 +23,20 @@ venv.
 1. HTTP-анализ. Анализ ответа от публичного API Sberbank (sberbank.ru/ru/quotes/currencies).
 2. Разработка REST API. API для "Заказы в магазине" (сущность: id, customer_name, items).
 3. Настройка Nginx. Настроить блок upstream и балансировку (даже с одним сервером).
+
+Схема 1. Обращение к API Sberbank
+
+<img width="458" height="148" alt="image" src="https://github.com/user-attachments/assets/db0e2efe-655e-4aff-b221-35181ee09029" />
+
+Схема 2. Разработка REST API
+
+<img width="434" height="136" alt="image" src="https://github.com/user-attachments/assets/9a8bdaad-ffd0-40bc-bfdc-f30926d87424" />
+
+Схема 3.  Настройка Nginx
+
+<img width="899" height="282" alt="image" src="https://github.com/user-attachments/assets/f40f21b2-67a2-42c1-80db-f9f4319c9d48" />
+
+
 # Ход работы
 Создаем диреекторию проекта, переходим в нее и устанавливаем необходимые утилиты
 ````
