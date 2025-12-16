@@ -186,22 +186,60 @@ sudo nano /etc/nginx/nginx.conf
 <img width="595" height="379" alt="image" src="https://github.com/user-attachments/assets/e2f5348e-6bb9-48ec-b47e-07ab4da61997" />
 
 
-Внутри блока http { ... } добавим описание upstream для Flask‑API заказов:
+Добавим описание upstream для Flask‑API заказов:
 ````
- upstream orders_backend {  
-     server 127.0.0.1:5000;    
+http {
+    ##
+    # Basic Settings
+    ##
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
+    # === БЛОК UPSTREAM ДЛЯ REST API "ЗАКАЗЫ" ===
+    upstream orders_backend {
+        server 127.0.0.1:5000;
+    }
+
+    ##
+    # Virtual Host Configs
+    ##
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
 }
 ````
-Внутри server в блок location добавим новый блок для API заказов
+Открываем
 ````
-    location /api/orders {  
-       # перенаправляем запросы к пулу backend-серверов  
-        proxy_pass http://orders_backend;  
-        proxy_set_header Host $host;  
-        proxy_set_header X-Real-IP $remote_addr;  
-  }
+sudo nano /etc/nginx/sites-available/default
 ````
+Приводим к следующему виду:
+````
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
+    server_name _;
+
+    location / {
+        # First attempt to serve request as file, then
+        # as directory, then fall back to displaying a 404.
+        try_files $uri $uri/ =404;
+    }
+
+    # === ПРОКСИ ДЛЯ REST API "ЗАКАЗЫ" ЧЕРЕЗ UPSTREAM ===
+    location /api/orders {
+        # отправляем все запросы к пулу orders_backend
+        proxy_pass http://orders_backend;
+
+        # пробрасываем важные заголовки
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+````
 Проверяем синтаксис
 
 ````
@@ -210,4 +248,60 @@ sudo nginx -t
 
 <img width="579" height="133" alt="image" src="https://github.com/user-attachments/assets/6ccf1d87-7b3a-4c5d-801d-c2cec58c190e" />
 
-Теперь перейдем к тестированию, будем работать в двух терминалах: Flask и client. В терминале Flask запустим сервис.
+Перезапускаем веб-сервер Nginx:
+````
+sudo systemctl restart nginx
+````
+
+Теперь перейдем к тестированию, будем работать в двух терминалах: Flask и client. В терминале Flask запустим сервис. Далее работаем во втором терминале. 
+
+Тест 1. Проверим работает ли вообще Nginx
+````
+curl http://localhost  
+````
+
+<img width="616" height="378" alt="image" src="https://github.com/user-attachments/assets/223e1804-8204-41ac-b18c-794a22b387ce" />
+
+По скриншоту видно, что сервер работает
+
+Тест 2.Работает ли проксирование через upstream
+
+````
+curl -i http://localhost/api/orders
+
+Первый запрос — "Холодный" кеш:
+````
+<img width="592" height="319" alt="image" src="https://github.com/user-attachments/assets/2e333eb3-a87f-44c8-9b3b-60296c402163" />
+
+````
+curl -i http://localhost/api/orders  
+````
+Второй запрос — "Горячий" кеш:
+
+<img width="568" height="291" alt="image" src="https://github.com/user-attachments/assets/9850275d-b30b-4f11-b886-c4d2d41a0806" />
+
+Проксирование через upstream работает корректно. Оба запроса  успешно обработаны с кодом ответа HTTP/1.1 200 OK, и сервер Nginx корректно работает
+
+Тест 3. Работают ли запросы, которые не должны кешироваться
+Для начала необходимо создать новый заказ
+````
+curl -i -X POST -H "Content-Type: application/json" \  
+    -d '{"customer_name": "Nginx User", "items": ["test-item"]}' \  
+    http://localhost/api/orders  
+````
+<img width="592" height="337" alt="image" src="https://github.com/user-attachments/assets/6de70bd6-ad2b-4be3-b2d0-531c6db088e4" />
+
+Проверим добавился ли заказ
+````
+curl -s http://localhost/api/orders | jq
+````
+<img width="589" height="423" alt="image" src="https://github.com/user-attachments/assets/b46c7b54-4f8b-49fb-8af7-3d1525ce9961" />
+
+
+
+<img width="295" height="174" alt="image" src="https://github.com/user-attachments/assets/d8db3d23-0cd4-43bc-b72e-9e8e3daf3202" />
+
+Все тестирования пройдены успешно
+
+## Выводы
+В ходе выполнения работы успешно изучены методы отправки и анализа HTTP-запросов с использованием curl, что подтверждается корректным получением JSON-ответов от API с кодом 200 OK. Освоена базовая настройка nginx в качестве обратного прокси-сервера с использованием upstream для балансировки нагрузки между микросервисами, что доказывается успешным проксированием запросов.
